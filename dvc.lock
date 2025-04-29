@@ -5,31 +5,31 @@ stages:
     deps:
     - path: train.py
       hash: md5
-      md5: 823f2f57fe4f5e6b7e8167ca1b4b8328
-      size: 10550
+      md5: 1e37590c0abb6b519fe970e67962990d
+      size: 13150
     outs:
     - path: data/returns_data.csv
       hash: md5
-      md5: 8a75654a4f699bb4de13b7e539b650ce
-      size: 46073
+      md5: bdc5159af90b66a0be208e5d37241dc0
+      size: 4308
     - path: data/stock_data.csv
       hash: md5
-      md5: 5fd7455b3e52fa53bf1f43a013bc54f2
-      size: 340907
+      md5: d09c5387180202845285584fed1d5e15
+      size: 1696
     - path: mlruns
       hash: md5
-      md5: 48e3f7d979e3cd46944367225d421df8.dir
-      size: 1854859
-      nfiles: 44792
+      md5: fe04ddab17077ca12f7d02f4348ddffe.dir
+      size: 28563
+      nfiles: 90
     - path: models/portfolio_model.joblib
       hash: md5
-      md5: 5b7ac5cea48ab3a60ca8a7bf0e0bafdc
-      size: 441
+      md5: ea4656d95e669faf0fe71ea75250d583
+      size: 442
     - path: results/metrics.json
       hash: md5
-      md5: 7c839196d03ef1ae7659454588b216d5
-      size: 152
+      md5: 31766a0397780962d7d4dae18cb33e55
+      size: 151
     - path: results/portfolio_allocation.png
       hash: md5
-      md5: 8fffffbee7d6543b106f16e0a22a5585
-      size: 22096
+      md5: df5ababa3067ed95c93b827ac56bd8c0
+      size: 23767

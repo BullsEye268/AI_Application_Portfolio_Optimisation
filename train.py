@@ -16,6 +16,7 @@ import logging
 import time
 import itertools
 from tqdm import tqdm
+from pymongo import MongoClient
 
 # Load environment variables
 load_dotenv()
@@ -24,7 +25,7 @@ log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
 os.makedirs(log_dir, exist_ok=True)
 
 # Set up logging
-log_file = os.path.join(log_dir, "web_application.log")
+log_file = os.path.join(log_dir, "my_log.log")
 logging.basicConfig(
     level=logging.WARN,                      # Set the minimum logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     filename=log_file,              # Log file name
@@ -37,8 +38,12 @@ logger = logging.getLogger(__name__)
 
 
 # Define the stock symbols - these are just examples, can be changed
-STOCK_SYMBOLS = ['AAPL', 'MSFT', 'GOOG', 'AMZN', 'META', 'TSLA', 'NVDA', 'JPM', 'BAC', 'V']
+STOCK_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'JPM', 'WMT', 'V']
 DAYS = 300
+MONGO_URI = "mongodb://localhost:27017/"
+MONGO_DB_NAME = "portfolio_management"
+SEQUENCE_LENGTH = 100
+COMPANIES = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "JPM", "WMT", "V"]
 
 # Create data directory if it doesn't exist
 os.makedirs('data', exist_ok=True)
@@ -46,31 +51,84 @@ os.makedirs('models', exist_ok=True)
 os.makedirs('results', exist_ok=True)
 
 
-def fetch_stock_data():
-    """Fetch historical stock data and save it using DVC."""
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=DAYS)
+# def fetch_stock_data():
+#     """Fetch historical stock data and save it using DVC."""
+#     end_date = datetime.now()
+#     start_date = end_date - timedelta(days=DAYS)
     
-    all_data = pd.DataFrame()
+#     all_data = pd.DataFrame()
     
-    for symbol in STOCK_SYMBOLS:
-        try:
-            data = yf.download(symbol, start=start_date, end=end_date)
-            if not data.empty:
-                # Calculate daily returns
-                data['Returns'] = data['Close'].pct_change()
-                # Add symbol column
-                data['Symbol'] = symbol
-                # Append to main dataframe
-                all_data = pd.concat([all_data, data])
-            else:
-                print(f"No data found for {symbol}")
-        except Exception as e:
-            print(f"Error fetching data for {symbol}: {e}")
+#     for symbol in STOCK_SYMBOLS:
+#         try:
+#             data = yf.download(symbol, start=start_date, end=end_date)
+#             if not data.empty:
+#                 # Calculate daily returns
+#                 data['Returns'] = data['Close'].pct_change()
+#                 # Add symbol column
+#                 data['Symbol'] = symbol
+#                 # Append to main dataframe
+#                 all_data = pd.concat([all_data, data])
+#             else:
+#                 print(f"No data found for {symbol}")
+#         except Exception as e:
+#             print(f"Error fetching data for {symbol}: {e}")
     
-    # Save data
-    all_data.to_csv('data/stock_data.csv')
-    return all_data
+#     # Save data
+#     all_data.to_csv('data/stock_data.csv')
+#     return all_data
+
+def fetch_data(collection, company, n_days=30):
+    """Fetch data from MongoDB."""
+    try:
+        client = MongoClient(MONGO_URI)
+        db = client[MONGO_DB_NAME]
+        coll = db[collection]
+        end_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        start_date = end_date - timedelta(days=n_days)
+        query = {
+            "company": company,
+            "date": {"$gte": start_date, "$lte": end_date}
+        }
+        data = list(coll.find(query).sort("date", 1))
+        client.close()
+        if len(data) < n_days:
+            print(f"Only {len(data)} days of data found for {company}")
+        return data
+    except Exception as e:
+        print(f"Error fetching data: {str(e)}")
+        raise
+
+def create_stock_price_dataframe(companies):
+    # Initialize an empty list to store all data
+    collection='stock_prices'
+    all_data = []
+    print(companies)
+    # Fetch data for each company
+    for company in companies:
+        data = fetch_data(collection=collection, company=company)
+        for record in data:
+            all_data.append({
+                'date': record['date'],
+                'company': record['company'],
+                'stock_price': record['stock_price']
+            })
+    
+    # Create DataFrame from all data
+    df = pd.DataFrame(all_data)
+    
+    # Pivot the DataFrame to have dates as rows and companies as columns
+    pivot_df = df.pivot(index='date', columns='company', values='stock_price')
+    
+    # Reset index to make 'date' a column
+    pivot_df = pivot_df.reset_index()
+    
+    # Ensure date is in datetime format
+    pivot_df['date'] = pd.to_datetime(pivot_df['date'])
+    
+    # Sort by date
+    pivot_df = pivot_df.sort_values('date')
+    
+    return pivot_df
 
 
 def prepare_training_data(all_data):
@@ -111,14 +169,27 @@ def train_model():
     """Train the portfolio optimization model using grid search."""
     # Fetch and prepare data
     logger.info('Starting Training')
-    all_data = fetch_stock_data()
-    logger.info('Processing Raw Data')
-    print(all_data)
-    returns_data = prepare_training_data(all_data)
-    
+    # print(all_data)
+    # returns_data = prepare_training_data(all_data)
+    data_dict = create_stock_price_dataframe(companies=COMPANIES)
+    print(data_dict.head(5))
+    data_dict.to_csv('data/stock_data.csv')
+
+    # Ensure date is the index for calculations
+    price_data = data_dict.set_index('date')
+
+    # Filter for the symbols in symbols
+    price_data = price_data[[symbol for symbol in COMPANIES if symbol in price_data.columns]]
+
+    # Drop rows with any NaN values
+    price_data = price_data.dropna()
+
+    # Calculate daily returns
+    returns_data = price_data.pct_change().dropna()
     # Save prepared data for DVC tracking
     returns_data.to_csv('data/returns_data.csv')
-    
+    print('This is good')
+    print(returns_data.head(5))
     # Set up MLflow tracking
     mlflow.set_tracking_uri("file:./mlruns")
     mlflow.set_experiment("portfolio_optimization")
@@ -178,7 +249,7 @@ def train_model():
         best_sharpe_ratio = -float('inf')
         best_portfolio = None
         
-        for weights in tqdm(weights_grid):
+        for weights in tqdm(weights_grid[:4]):
             weights = np.array(weights)
             
             # Evaluate portfolio
