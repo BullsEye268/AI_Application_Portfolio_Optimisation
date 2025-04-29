@@ -1,0 +1,7 @@
+# Add patterns of files dvc should ignore, which could otherwise be included in
+# .gitignore. For example we don't want to exclude the file '.gitignore' itself.
+.git/
+.gitignore
+.dvc/
+.dvcignore
+__pycache__/ 

@@ -1,0 +1,9 @@
+/data/
+/models/
+/results/
+/mlruns/
+__pycache__/
+*.py[cod]
+*$py.class
+.env 
+/mlruns

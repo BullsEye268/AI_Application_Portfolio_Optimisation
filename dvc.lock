@@ -1,0 +1,35 @@
+schema: '2.0'
+stages:
+  train:
+    cmd: python train.py
+    deps:
+    - path: train.py
+      hash: md5
+      md5: 823f2f57fe4f5e6b7e8167ca1b4b8328
+      size: 10550
+    outs:
+    - path: data/returns_data.csv
+      hash: md5
+      md5: 8a75654a4f699bb4de13b7e539b650ce
+      size: 46073
+    - path: data/stock_data.csv
+      hash: md5
+      md5: 5fd7455b3e52fa53bf1f43a013bc54f2
+      size: 340907
+    - path: mlruns
+      hash: md5
+      md5: 48e3f7d979e3cd46944367225d421df8.dir
+      size: 1854859
+      nfiles: 44792
+    - path: models/portfolio_model.joblib
+      hash: md5
+      md5: 5b7ac5cea48ab3a60ca8a7bf0e0bafdc
+      size: 441
+    - path: results/metrics.json
+      hash: md5
+      md5: 7c839196d03ef1ae7659454588b216d5
+      size: 152
+    - path: results/portfolio_allocation.png
+      hash: md5
+      md5: 8fffffbee7d6543b106f16e0a22a5585
+      size: 22096

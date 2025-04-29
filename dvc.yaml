@@ -1,0 +1,16 @@
+stages:
+  train:
+    cmd: python train.py
+    deps:
+      - train.py
+    outs:
+      - data/stock_data.csv
+      - data/returns_data.csv
+      - models/portfolio_model.joblib
+      - mlruns
+    metrics:
+      - results/metrics.json:
+          cache: false
+    plots:
+      - results/portfolio_allocation.png:
+          cache: false
